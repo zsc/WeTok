@@ -11,3 +11,4 @@ pip install tensorflow==2.16.1
 pip install tensorflow-metal
 #pip install nvidia-cublas-cu12==12.5.3.2
 pip install matplotlib
+pip install pillow-avif-plugin

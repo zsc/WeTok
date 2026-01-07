@@ -110,7 +110,7 @@ We provide an integrated script `generate_wetok.py` to perform the core function
 Encodes an input image into WeTok discrete tokens and saves them as a JSON file.
 
 **Arguments:**
-- `--input` (or `--image`): Path to the input image. Supports jpg, jpeg, png, bmp, webp, tiff.
+- `--input` (or `--image`): Path to the input image. Supports jpg, jpeg, png, bmp, webp, tiff, avif.
 - `--config`: Path to the model config file (.yaml).
 - `--ckpt`: Path to the model checkpoint file (.ckpt).
 - `--output`: Path to the output JSON file.

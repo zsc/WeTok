@@ -150,7 +150,7 @@ def main():
         ext = os.path.splitext(input_path)[1].lower()
         if ext in ['.json']:
             mode = "decode"
-        elif ext in ['.png', '.jpg', '.jpeg', '.bmp', '.webp', '.tiff']:
+        elif ext in ['.png', '.jpg', '.jpeg', '.bmp', '.webp', '.tiff', '.avif']:
             mode = "encode"
         else:
             print(f"Error: Could not automatically determine mode from extension '{ext}'. Please specify --mode.")

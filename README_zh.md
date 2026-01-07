@@ -29,7 +29,7 @@
 将输入图像编码为 WeTok 的离散 Token 数据，并保存为 JSON 文件。
 
 **命令参数：**
-- `--input` (或 `--image`): 输入图像的路径。支持 jpg, jpeg, png, bmp, webp, tiff。
+- `--input` (或 `--image`): 输入图像的路径。支持 jpg, jpeg, png, bmp, webp, tiff, avif。
 - `--config`: 模型配置文件 (.yaml) 的路径。
 - `--ckpt`: 模型权重文件 (.ckpt) 的路径。
 - `--output`: 输出 JSON 文件的路径。
