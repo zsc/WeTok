@@ -127,22 +127,19 @@ def main():
     # Mode argument
     parser.add_argument("--mode", choices=["encode", "decode", "auto"], default="auto", help="Operation mode: encode (image->json), decode (json->image) or auto (detect from extension)")
     
-    # Input/Output
+    # Positional Input/Output
     parser.add_argument("input", type=str, help="Path to input file (Image for encode, JSON for decode)")
     parser.add_argument("output", type=str, help="Path to output file (JSON for encode, Image for decode)")
     
     # Shared / Mode specific
     parser.add_argument("--size", default=256, type=int, help="Image input size (encode mode)")
-    parser.add_argument("--config", type=str, default='configs/WeToK/Inference/ImageNet_downsample8_imagenet.yaml', help="Path to model config (yaml). Required for encode, optional for decode")
-    parser.add_argument("--ckpt", type=str, default='GrayShine/ImageNet/downsample8/WeTok.ckpt', help="Path to model checkpoint. Required for encode, optional for decode")
+    parser.add_argument("--config", type=str, help="Path to model config (yaml). Required for encode, optional for decode")
+    parser.add_argument("--ckpt", type=str, help="Path to model checkpoint. Required for encode, optional for decode")
     
     args = parser.parse_args()
     
-    # Handle input alias
-    input_path = args.input or args.image
-    if not input_path:
-        print("Error: --input (or --image) is required.")
-        sys.exit(1)
+    input_path = args.input
+    output_path = args.output
         
     # Auto-detect mode
     mode = args.mode
