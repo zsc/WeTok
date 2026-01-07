@@ -108,7 +108,7 @@ def decode_indices(encoded_data):
     else:
         data = base64.b64decode(encoded_data['data'])
         arr = np.frombuffer(data, dtype=encoded_data['dtype']).reshape(encoded_data['shape'])
-        return torch.from_numpy(arr)
+        return torch.from_numpy(arr.copy())
 
 def custom_to_pil(x):
     x = x.detach().cpu()
@@ -128,14 +128,13 @@ def main():
     parser.add_argument("--mode", choices=["encode", "decode", "auto"], default="auto", help="Operation mode: encode (image->json), decode (json->image) or auto (detect from extension)")
     
     # Input/Output
-    parser.add_argument("--input", type=str, help="Path to input file (Image for encode, JSON for decode)")
-    parser.add_argument("--image", type=str, help="Alias for --input (for backward compatibility)")
-    parser.add_argument("--output", required=True, type=str, help="Path to output file (JSON for encode, Image for decode)")
+    parser.add_argument("input", type=str, help="Path to input file (Image for encode, JSON for decode)")
+    parser.add_argument("output", type=str, help="Path to output file (JSON for encode, Image for decode)")
     
     # Shared / Mode specific
     parser.add_argument("--size", default=256, type=int, help="Image input size (encode mode)")
-    parser.add_argument("--config", type=str, help="Path to model config (yaml). Required for encode, optional for decode")
-    parser.add_argument("--ckpt", type=str, help="Path to model checkpoint. Required for encode, optional for decode")
+    parser.add_argument("--config", type=str, default='configs/WeToK/Inference/ImageNet_downsample8_imagenet.yaml', help="Path to model config (yaml). Required for encode, optional for decode")
+    parser.add_argument("--ckpt", type=str, default='GrayShine/ImageNet/downsample8/WeTok.ckpt', help="Path to model checkpoint. Required for encode, optional for decode")
     
     args = parser.parse_args()
     
