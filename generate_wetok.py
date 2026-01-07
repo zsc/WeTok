@@ -157,8 +157,8 @@ def main():
     
     # Shared / Mode specific
     parser.add_argument("--size", default=256, type=int, help="Image input size (encode mode). Use 0 or -1 to keep original size (adjusted for model downsampling).")
-    parser.add_argument("--config", type=str, help="Path to model config (yaml). Required for encode, optional for decode")
-    parser.add_argument("--ckpt", type=str, help="Path to model checkpoint. Required for encode, optional for decode")
+    parser.add_argument("--config", default='configs/WeToK/Inference/ImageNet_downsample8_imagenet.yaml', type=str, help="Path to model config (yaml). Required for encode, optional for decode") # KEEP this default
+    parser.add_argument("--ckpt", default='GrayShine/ImageNet/downsample8/WeTok.ckpt', type=str, help="Path to model checkpoint. Required for encode, optional for decode") # KEEP this default
     
     args = parser.parse_args()
     
