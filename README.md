@@ -29,10 +29,10 @@
 将输入图像编码为 WeTok 的离散 Token 数据，并保存为 JSON 文件。
 
 **命令参数：**
-- `--input` (或 `--image`): 输入图像的路径。支持 jpg, jpeg, png, bmp, webp, tiff, avif。
+- `input`: 输入图像的路径。支持 jpg, jpeg, png, bmp, webp, tiff, avif。
+- `output`: 输出 JSON 文件的路径。
 - `--config`: 模型配置文件 (.yaml) 的路径。
 - `--ckpt`: 模型权重文件 (.ckpt) 的路径。
-- `--output`: 输出 JSON 文件的路径。
 - `--size`: (可选) 图像处理尺寸，默认为 256。
 - `--mode`: (可选) 显式指定为 `encode`。通常可自动检测。
 
@@ -40,10 +40,10 @@
 
 ```bash
 python generate_wetok.py \
-    --input assets/teaser.png \
-    --config configs/Inference/GeneralDomain_compratio192_imagenet.yaml \
-    --ckpt GrayShine/ImageNet/WeTok.ckpt \
-    --output wetok_data.json
+    assets/teaser.png \
+    wetok_data.json \
+    --config configs/WeToK/Inference/GeneralDomain_compratio192_imagenet.yaml \
+    --ckpt GrayShine/ImageNet/WeTok.ckpt
 ```
 
 ### 2. 解码模式 (Decode)
@@ -51,8 +51,8 @@ python generate_wetok.py \
 读取包含 WeTok Token 数据的 JSON 文件，并将其重建为图像。
 
 **命令参数：**
-- `--input`: 输入 JSON 文件的路径（通常由编码模式生成）。
-- `--output`: 重建后输出图像的路径。
+- `input`: 输入 JSON 文件的路径（通常由编码模式生成）。
+- `output`: 重建后输出图像的路径。
 - `--config`: (可选) 模型配置文件路径。如果 JSON 中记录的路径有效，则无需指定。
 - `--ckpt`: (可选) 模型权重文件路径。如果 JSON 中记录的路径有效，则无需指定。
 - `--mode`: (可选) 显式指定为 `decode`。通常可自动检测。
@@ -61,8 +61,8 @@ python generate_wetok.py \
 
 ```bash
 python generate_wetok.py \
-    --input wetok_data.json \
-    --output reconstructed_image.png
+    wetok_data.json \
+    reconstructed_image.png
 ```
 
 ## 依赖环境
