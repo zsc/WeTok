@@ -46,18 +46,42 @@ def load_model(config, ckpt_path=None):
     model.eval()
     return model
 
-def preprocess_image(image_path, size):
+def preprocess_image(image_path, size, downsample_factor=16):
+    # Handle file:// prefix if somehow passed here, though main handles it
+    if image_path.startswith("file://"):
+        image_path = image_path[7:]
+        
     image = Image.open(image_path)
     if not image.mode == "RGB":
         image = image.convert("RGB")
     
-    image = image.resize((size, size), Image.BICUBIC)
+    w, h = image.size
+    
+    # Resize logic: maintain aspect ratio
+    if size is not None and size > 0:
+        # Scale so that the smaller side is 'size'
+        scale = size / min(w, h)
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+    else:
+        new_w, new_h = w, h
+        
+    # Ensure divisibility by downsample_factor
+    new_w = round(new_w / downsample_factor) * downsample_factor
+    new_h = round(new_h / downsample_factor) * downsample_factor
+    
+    # Avoid 0 dimensions
+    new_w = max(new_w, downsample_factor)
+    new_h = max(new_h, downsample_factor)
+    
+    if (new_w, new_h) != (w, h):
+        image = image.resize((new_w, new_h), Image.BICUBIC)
     
     x = np.array(image).astype(np.float32)
     x = (x / 127.5) - 1.0 # Normalize to [-1, 1]
     x = torch.from_numpy(x).permute(2, 0, 1) # (C, H, W)
     x = x.unsqueeze(0) # (B, C, H, W)
-    return x
+    return x, new_h, new_w
 
 def encode_indices(indices):
     """
@@ -103,7 +127,7 @@ def decode_indices(encoded_data):
         for d in encoded_data:
             data = base64.b64decode(d['data'])
             arr = np.frombuffer(data, dtype=d['dtype']).reshape(d['shape'])
-            indices.append(torch.from_numpy(arr))
+            indices.append(torch.from_numpy(arr.copy()))
         return indices
     else:
         data = base64.b64decode(encoded_data['data'])
@@ -132,13 +156,15 @@ def main():
     parser.add_argument("output", type=str, help="Path to output file (JSON for encode, Image for decode)")
     
     # Shared / Mode specific
-    parser.add_argument("--size", default=256, type=int, help="Image input size (encode mode)")
+    parser.add_argument("--size", default=256, type=int, help="Image input size (encode mode). Use 0 or -1 to keep original size (adjusted for model downsampling).")
     parser.add_argument("--config", type=str, help="Path to model config (yaml). Required for encode, optional for decode")
     parser.add_argument("--ckpt", type=str, help="Path to model checkpoint. Required for encode, optional for decode")
     
     args = parser.parse_args()
     
     input_path = args.input
+    if input_path.startswith("file://"):
+        input_path = input_path[7:]
     output_path = args.output
         
     # Auto-detect mode
@@ -167,11 +193,21 @@ def main():
         # Load Config
         config = OmegaConf.load(args.config)
         
+        # Determine downsample factor
+        try:
+            ch_mult = config.model.init_args.ddconfig.ch_mult
+            downsample_factor = 2 ** (len(ch_mult) - 1)
+        except:
+            downsample_factor = 16 # Fallback
+            
         # Load Model
         model = load_model(config, args.ckpt).to(DEVICE)
         
         # Preprocess Image
-        img_tensor = preprocess_image(input_path, args.size).to(DEVICE)
+        img_tensor, h, w = preprocess_image(input_path, args.size, downsample_factor)
+        img_tensor = img_tensor.to(DEVICE)
+        
+        print(f"Processing image with size {h}x{w}")
         
         # Encode
         print("Encoding...")
@@ -189,13 +225,15 @@ def main():
             "wetok": wetok_data,
             "config": args.config,
             "ckpt": args.ckpt,
-            "image_size": args.size
+            "image_size": args.size, # original request param
+            "height": h,
+            "width": w
         }
         
-        with open(args.output, 'w') as f:
+        with open(output_path, 'w') as f:
             json.dump(output_data, f, indent=4)
             
-        print(f"Successfully saved WeTok to {args.output}")
+        print(f"Successfully saved WeTok to {output_path}")
 
     elif mode == "decode":
         if not os.path.exists(input_path):
@@ -209,6 +247,10 @@ def main():
         config_path = args.config if args.config else data['config']
         ckpt_path = args.ckpt if args.ckpt else data['ckpt']
         image_size = data['image_size']
+        
+        # Get actual dimensions if available, else assume square
+        height = data.get('height', image_size)
+        width = data.get('width', image_size)
         
         print(f"Loading config from {config_path}")
         if not os.path.exists(config_path):
@@ -237,18 +279,23 @@ def main():
             
         num_codebooks = config.model.init_args.get('num_codebooks', 1)
         
-        ch_mult = config.model.init_args.ddconfig.ch_mult
-        downsample_factor = 2 ** (len(ch_mult) - 1)
-        res = image_size // downsample_factor
+        try:
+            ch_mult = config.model.init_args.ddconfig.ch_mult
+            downsample_factor = 2 ** (len(ch_mult) - 1)
+        except:
+            downsample_factor = 16
+            
+        h_latent = height // downsample_factor
+        w_latent = width // downsample_factor
         
-        print(f"Reconstructing with resolution {res}x{res}, num_codebooks {num_codebooks}")
+        print(f"Reconstructing with resolution {height}x{width} (Latent: {h_latent}x{w_latent}), num_codebooks {num_codebooks}")
 
         with torch.no_grad():
             if isinstance(indices, (list, tuple)):
                 print("Error: Token factorization reconstruction not yet implemented in this simple script.")
                 sys.exit(1)
             else:
-                indices = indices.view(1, res * res, num_codebooks)
+                indices = indices.view(1, h_latent * w_latent, num_codebooks)
                 
                 if model.use_ema:
                     with model.ema_scope():
@@ -256,13 +303,13 @@ def main():
                 else:
                     quant = model.quantize.decode(indices)
                     
-                quant = rearrange(quant, 'b (h w) d -> b d h w', h=res, w=res)
+                quant = rearrange(quant, 'b (h w) d -> b d h w', h=h_latent, w=w_latent)
                 
                 reconstructed_images = model.decode(quant)
                 
         img = custom_to_pil(reconstructed_images[0])
-        img.save(args.output)
-        print(f"Successfully reconstructed image to {args.output}")
+        img.save(output_path)
+        print(f"Successfully reconstructed image to {output_path}")
 
 if __name__ == "__main__":
     main()
