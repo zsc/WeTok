@@ -134,6 +134,20 @@ def decode_indices(encoded_data):
         arr = np.frombuffer(data, dtype=encoded_data['dtype']).reshape(encoded_data['shape'])
         return torch.from_numpy(arr.copy())
 
+def calc_psnr(img1, img2):
+    # img1 and img2 are tensors in [-1, 1]
+    # Convert to [0, 1]
+    img1 = (img1.clone().detach().float() + 1.0) / 2.0
+    img2 = (img2.clone().detach().float() + 1.0) / 2.0
+    img1 = torch.clamp(img1, 0, 1)
+    img2 = torch.clamp(img2, 0, 1)
+    
+    mse = torch.mean((img1 - img2) ** 2)
+    if mse == 0:
+        return float('inf')
+    psnr = 10 * torch.log10(1.0 / mse)
+    return psnr.item()
+
 def custom_to_pil(x):
     x = x.detach().cpu()
     x = torch.clamp(x, -1., 1.)
@@ -158,7 +172,7 @@ def main():
     # Shared / Mode specific
     parser.add_argument("--size", default=256, type=int, help="Image input size (encode mode). Use 0 or -1 to keep original size (adjusted for model downsampling).")
     parser.add_argument("--config", default='configs/WeToK/Inference/ImageNet_downsample8_imagenet.yaml', type=str, help="Path to model config (yaml). Required for encode, optional for decode") # KEEP this default
-    parser.add_argument("--ckpt", default='GrayShine/ImageNet/downsample8/WeTok.ckpt', type=str, help="Path to model checkpoint. Required for encode, optional for decode") # KEEP this default
+    parser.add_argument("--ckpt", default='GrayShine/ImageNet/downsample8/WeTok.ckpt', type=str, help="Path to model checkpoint. Required for encode, optional for decode") # KEEP this default, download from https://huggingface.co/GrayShine/WeTok/resolve/main/ImageNet/downsample8/WeTok.ckpt?download=true
     
     args = parser.parse_args()
     
@@ -215,8 +229,14 @@ def main():
             if model.use_ema:
                 with model.ema_scope():
                     quant, diff, indices, _ = model.encode(img_tensor)
+                    rec = model.decode(quant)
             else:
                 quant, diff, indices, _ = model.encode(img_tensor)
+                rec = model.decode(quant)
+        
+        # Calculate and print PSNR
+        psnr_val = calc_psnr(img_tensor, rec)
+        print(f"Reconstruction PSNR: {psnr_val:.2f} dB")
                 
         # Serialize
         wetok_data = encode_indices(indices)
