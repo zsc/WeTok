@@ -81,7 +81,7 @@ def preprocess_image(image_path, size, downsample_factor=16):
     x = (x / 127.5) - 1.0 # Normalize to [-1, 1]
     x = torch.from_numpy(x).permute(2, 0, 1) # (C, H, W)
     x = x.unsqueeze(0) # (B, C, H, W)
-    return x, new_h, new_w
+    return x, new_h, new_w, h, w
 
 def encode_indices(indices):
     """
@@ -197,14 +197,14 @@ def main():
         try:
             ch_mult = config.model.init_args.ddconfig.ch_mult
             downsample_factor = 2 ** (len(ch_mult) - 1)
-        except:
+        except Exception:
             downsample_factor = 16 # Fallback
             
         # Load Model
         model = load_model(config, args.ckpt).to(DEVICE)
         
         # Preprocess Image
-        img_tensor, h, w = preprocess_image(input_path, args.size, downsample_factor)
+        img_tensor, h, w, orig_h, orig_w = preprocess_image(input_path, args.size, downsample_factor)
         img_tensor = img_tensor.to(DEVICE)
         
         print(f"Processing image with size {h}x{w}")
@@ -227,7 +227,9 @@ def main():
             "ckpt": args.ckpt,
             "image_size": args.size, # original request param
             "height": h,
-            "width": w
+            "width": w,
+            "original_height": orig_h,
+            "original_width": orig_w
         }
         
         with open(output_path, 'w') as f:
@@ -282,8 +284,8 @@ def main():
         try:
             ch_mult = config.model.init_args.ddconfig.ch_mult
             downsample_factor = 2 ** (len(ch_mult) - 1)
-        except:
-            downsample_factor = 16
+        except Exception:
+            downsample_factor = 16 # Fallback
             
         h_latent = height // downsample_factor
         w_latent = width // downsample_factor
@@ -308,6 +310,15 @@ def main():
                 reconstructed_images = model.decode(quant)
                 
         img = custom_to_pil(reconstructed_images[0])
+        
+        # Resize to original size if available
+        if "original_height" in data and "original_width" in data:
+            orig_h = data["original_height"]
+            orig_w = data["original_width"]
+            if (img.width, img.height) != (orig_w, orig_h):
+                print(f"Restoring original size: {orig_w}x{orig_h}")
+                img = img.resize((orig_w, orig_h), Image.BICUBIC)
+                
         img.save(output_path)
         print(f"Successfully reconstructed image to {output_path}")
 
