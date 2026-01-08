@@ -1,0 +1,14 @@
+omegaconf
+lightning
+albumentations
+scikit-image   
+lpips 
+'jsonargparse[signatures]>=4.27.7'
+tensorboard
+webdataset
+diffusers
+tensorflow==2.16.1
+tensorflow-metal
+#pip install nvidia-cublas-cu12==12.5.3.2
+matplotlib
+pillow-avif-plugin

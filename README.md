@@ -67,8 +67,5 @@ python generate_wetok.py \
 
 ## 依赖环境
 
-在运行脚本之前，请确保已按照 `env.sh` 安装了所需的依赖环境：
+在运行脚本之前，请确保已按照 requirements.txt 安装了所需的依赖环境
 
-```bash
-bash env.sh
-```
