@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeTok 图像与音频展示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            max-width: 1000px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .description {
+            text-align: center;
+            color: #86868b;
+            margin-bottom: 40px;
+            font-size: 0.9em;
+        }
+        .image-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+        }
+        .card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            border: 1px solid #d2d2d7;
+            border-radius: 12px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        audio {
+            width: 100%;
+        }
+        .label {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        .file-info {
+            font-size: 0.85em;
+            color: #86868b;
+            text-align: left;
+            width: 100%;
+            padding: 0 10px;
+        }
+        .note {
+            font-size: 0.8em;
+            color: #ef5b5b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WeTok 结果展示</h1>
+        <p class="description">音频重建使用 microsoft/speecht5_hifigan 声码器</p>
+        
+        <div class="image-section">
+            <!-- 原始部分 -->
+            <div class="card">
+                <span class="label">原始 AVIF</span>
+                <img src="q90.avif" alt="q90.avif">
+                <div class="file-info">
+                    <div>Image: q90.avif (4.5K)</div>
+                    <div>Audio: q90_recon.wav (140K)</div>
+                    <div>Data: q90.json (3.9K) <span class="note">(含 wetok token)</span></div>
+                </div>
+                <audio controls src="q90_recon.wav"></audio>
+            </div>
+
+            <!-- WeTok 重建部分 -->
+            <div class="card">
+                <span class="label">WeTok 重建</span>
+                <img src="q90_wetok2.png" alt="q90_wetok2.png">
+                <div class="file-info">
+                    <div>Image: q90_wetok2.png (26K)</div>
+                    <div>Audio: q90_wetok2.wav (140K)</div>
+                </div>
+                <audio controls src="q90_wetok2.wav"></audio>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
