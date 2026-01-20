@@ -152,8 +152,6 @@ cython_debug/
 
 # Project Specific
 GrayShine/
-*.json
-*.png
 !assets/*.png
 test_write.txt
 reconstruct_from_wetok.py
