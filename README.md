@@ -24,7 +24,58 @@
 
 本项目提供了一个集成的脚本 `generate_wetok.py`，用于执行 WeTok 的核心功能：图像编码 (Encoding) 和图像重建 (Decoding)。该脚本合并了原有的生成和重建逻辑，提供了更统一的接口，并支持根据输入文件扩展名自动判断模式。
 
-### 1. 编码模式 (Encode)
+### 快速开始（推理 / GPU）
+
+#### 0. 最小推理依赖（推荐）
+
+仅使用 `generate_wetok.py` 做 **编码/解码推理** 时，不需要安装完整训练栈（例如 `lightning`、LPIPS 等）。
+
+建议安装的最小依赖：
+- `torch`（有 CUDA 则自动 GPU 加速）
+- `numpy`
+- `Pillow`
+- `omegaconf`
+- `einops`
+
+如果你要进行训练/评测，再按 `requirements.txt` 安装完整依赖即可。
+
+#### 1. 下载默认权重（GrayShine）
+
+仓库内提供 `download.sh` 用于下载默认权重到：
+
+- `GrayShine/ImageNet/downsample8/WeTok.ckpt`
+
+```bash
+bash download.sh
+```
+
+#### 2. 一键编码 / 解码（使用默认 config + ckpt）
+
+`generate_wetok.py` 已内置默认参数：
+- `--config configs/WeToK/Inference/ImageNet_downsample8_imagenet.yaml`
+- `--ckpt GrayShine/ImageNet/downsample8/WeTok.ckpt`
+- `--size 256`
+
+因此最简单只需要给输入输出即可：
+
+```bash
+# Encode: image -> json
+python generate_wetok.py assets/teaser.png wetok_data.json
+
+# Decode: json -> image
+python generate_wetok.py wetok_data.json reconstructed.png
+```
+
+#### 3. GPU 加速说明
+
+脚本会按如下优先级选择设备：
+1) NPU（若可用）
+2) CUDA（`cuda:0`，若可用）
+3) CPU
+
+通常只要安装的是 CUDA 版 PyTorch，就会自动走 GPU。
+
+### 编码模式 (Encode)
 
 将输入图像编码为 WeTok 的离散 Token 数据，并保存为 JSON 文件。
 
@@ -42,11 +93,12 @@
 python generate_wetok.py \
     assets/teaser.png \
     wetok_data.json \
-    --config configs/WeToK/Inference/GeneralDomain_compratio192_imagenet.yaml \
-    --ckpt GrayShine/ImageNet/WeTok.ckpt
+    --config configs/WeToK/Inference/ImageNet_downsample8_imagenet.yaml \
+    --ckpt GrayShine/ImageNet/downsample8/WeTok.ckpt \
+    --size 256
 ```
 
-### 2. 解码模式 (Decode)
+### 解码模式 (Decode)
 
 读取包含 WeTok Token 数据的 JSON 文件，并将其重建为图像。
 
@@ -65,7 +117,16 @@ python generate_wetok.py \
     reconstructed_image.png
 ```
 
+### 误差指标（PSNR / MSE / MAE）怎么理解？
+
+- Encode 阶段会打印 `Reconstruction PSNR`，它是在“**预处理后的模型输入分辨率**”上计算的（图像会按 `--size` 缩放，并被修正为可被模型下采样因子整除）。
+- Decode 阶段默认会把输出 **resize 回原图尺寸**（如果 JSON 里记录了原图尺寸），因此你如果直接在“原始分辨率”上对比原图与重建图，误差会包含额外的缩放影响，PSNR 往往会更低。
+
+示例（`assets/teaser.png`，`--size 256`，模型输入被缩放到 `256x576`）：
+- Encode 阶段（脚本输出）：PSNR ≈ `23.86 dB`
+- Encode→JSON→Decode 后输出 PNG vs 原图（`918x2058`）：PSNR ≈ `17.7074 dB`（MSE `0.01695365`，MAE `0.05928486`，像素归一化到 `[0,1]`）
+- 若把“原图”和“重建 PNG”都 resize 到 `256x576` 再对比：PSNR ≈ `23.9602 dB`（MSE `0.00401776`，MAE `0.03134260`，像素归一化到 `[0,1]`）
+
 ## 依赖环境
 
-在运行脚本之前，请确保已按照 requirements.txt 安装了所需的依赖环境
-
+仅做推理建议走“最小依赖”；如需训练/评测，请按 `requirements.txt` 安装完整依赖环境。

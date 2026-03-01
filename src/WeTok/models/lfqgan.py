@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
-import lightning as L
+from src.WeTok.utils.lightning_compat import L
 
-from main import instantiate_from_config
+from src.WeTok.utils.instantiate import instantiate_from_config
 from contextlib import contextmanager
 from collections import OrderedDict
 
@@ -48,7 +48,7 @@ class VQModel(L.LightningModule):
             self.decoder = Decoder(**ddconfig)
         else:
             self.decoder = GANDecoder(**ddconfig)
-        self.loss = instantiate_from_config(lossconfig)
+        self.loss = instantiate_from_config(lossconfig) if lossconfig is not None else None
         self.use_GFQ = use_GFQ
         if not self.use_GFQ:
             self.quantize = LFQ(dim=embed_dim, codebook_size=n_embed, num_codebooks=num_codebooks,

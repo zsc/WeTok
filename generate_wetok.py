@@ -34,7 +34,19 @@ def load_model(config, ckpt_path=None):
         from src.WeTok.models.lfqgan import VQModel
         model_cls = VQModel
         
-    model = model_cls(**config.model.init_args)
+    init_args = config.model.init_args
+    if isinstance(init_args, dict):
+        init_args = dict(init_args)
+    else:
+        # OmegaConf DictConfig -> plain dict
+        init_args = OmegaConf.to_container(init_args, resolve=True)
+
+    # Inference does not need training-time losses / discriminators.
+    # Keeping them out avoids heavyweight deps (e.g. LPIPS/VGG) and downloads.
+    if "lossconfig" in init_args:
+        init_args["lossconfig"] = None
+
+    model = model_cls(**init_args)
     
     if ckpt_path is not None:
         print(f"Loading checkpoint from {ckpt_path}")
